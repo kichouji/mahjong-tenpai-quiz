@@ -15,4 +15,4 @@
 
 ## URL
 
-https://yourusername.github.io/mahjong-tenpai-quiz/
+https://kichouji.github.io/mahjong-tenpai-quiz/
