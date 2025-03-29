@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>麻雀待ち牌当てクイズ</title>
+  <style>
+    :root {
+      --primary: #1a5e63;
+      --secondary: #4ecdc4;
+      --accent: #ff6b6b;
+      --background: #f7f7f7;
+      --tile-bg: #ffffff;
+      --tile-border: #d8d8d8;
+      --text: #333;
+      --correct: #4caf50;
+      --wrong: #f44336;
+    }
+    
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+      background-color: var(--background);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      background-color: var(--primary);
+      color: white;
+      padding: 20px 0;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+    
+    .subtitle {
+      font-weight: normal;
+      margin-top: 5px;
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    button:hover {
+      background-color: #14474a;
+    }
+    
+    button:active {
+      transform: translateY(2px);
+    }
+    
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    
+    button.secondary {
+      background-color: var(--secondary);
+    }
+    
+    button.secondary:hover {
+      background-color: #3ab0a8;
+    }
+    
+    h2 {
+      color: var(--primary);
+      margin-top: 0;
+      border-bottom: 2px solid var(--secondary);
+      padding-bottom: 8px;
+      font-size: 1.5rem;
+    }
+    
+    .tiles-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 20px;
+      min-height: 80px;
+    }
+    
+    .tile {
+      position: relative;
+      width: 50px;
+      height: 70px;
+      border-radius: 5px;
+      background-color: var(--tile-bg);
+      border: 1px solid var(--tile-border);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+      overflow: hidden;
+      user-select: none;
+    }
+    
+    .tile::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 30%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0));
+    }
+    
+    .tile.pinzu {
+      background-color: #fff;
+      color: #000;
+    }
+    
+    .tile.pinzu::after {
+      content: '萬';
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      font-size: 10px;
+      color: #d35f5f;
+    }
+    
+    .quiz-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .option-button {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      background-color: white;
+      border: 2px solid var(--secondary);
+      color: var(--text);
+      font-size: 18px;
+      padding: 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-wrap: wrap;
+    }
+    
+    .quiz-option {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      position: relative;
+    }
+    
+    .quiz-option input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+    
+    .quiz-option label {
+      cursor: pointer;
+      font-size: 15px;
+    }
+    
+    .tooltip {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+      z-index: 10;
+      white-space: nowrap;
+    }
+    
+    .quiz-option:hover .tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .option-button.selected {
+      background-color: var(--secondary);
+      color: white;
+    }
+    
+    .option-button.correct {
+      background-color: var(--correct);
+      color: white;
+      border-color: var(--correct);
+    }
+    
+    .option-button.wrong {
+      background-color: var(--wrong);
+      color: white;
+      border-color: var(--wrong);
+    }
+    
+    .option-tile {
+      width: 40px;
+      height: 56px;
+      font-size: 20px;
+    }
+    
+    .result-message {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      display: none;
+    }
+    
+    .result-message.correct {
+      background-color: #e8f5e9;
+      color: var(--correct);
+      display: block;
+    }
+    
+    .result-message.wrong {
+      background-color: #ffebee;
+      color: var(--wrong);
+      display: block;
+    }
+    
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    .stat-card {
+      flex: 1;
+      min-width: 120px;
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      color: #777;
+      margin-bottom: 5px;
+    }
+    
+    .stat-value {
+      font-size: 28px;
+      font-weight: bold;
+      color: var(--primary);
+    }
+    
+    footer {
+      margin-top: auto;
+      padding: 20px 0;
+      background-color: #f0f0f0;
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .animation-shake {
+      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-1px, 0, 0); }
+      20%, 80% { transform: translate3d(2px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+      40%, 60% { transform: translate3d(3px, 0, 0); }
+    }
+    
+    @media (max-width: 600px) {
+      .tile {
+        width: 40px;
+        height: 56px;
+        font-size: 20px;
+      }
+      
+      .quiz-options {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>麻雀待ち牌当てクイズ</h1>
+    <div class="subtitle">この手牌の待ち牌はどれ？</div>
+  </header>
+  
+  <div class="container">
+    <div class="card">
+      <div class="actions">
+        <button id="newQuizBtn" onclick="generateNewQuiz()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+          新しい問題
+        </button>
+        
+        <div class="quiz-option">
+          <input type="checkbox" id="kantzuMode" name="kantzuMode">
+          <label for="kantzuMode">槓子問題</label>
+          <div class="tooltip">同じ牌が4枚ある問題</div>
+        </div>
+      </div>
+      
+      <h2>手牌</h2>
+      <div id="handContainer" class="tiles-container"></div>
+      
+      <h2>この手牌の待ち牌は？</h2>
+      <div id="quizOptions" class="quiz-options">
+        <!-- 選択肢はJSで生成 -->
+      </div>
+      
+      <div id="resultMessage" class="result-message"></div>
+      
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-label">正解数</div>
+          <div class="stat-value" id="correctCount">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">問題数</div>
+          <div class="stat-value" id="totalCount">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">正答率</div>
+          <div class="stat-value" id="accuracyRate">0%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">問題タイプ</div>
+          <div class="stat-value" id="problemType">通常</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    麻雀待ち牌当てクイズ v1.0 © 2025
+  </footer>
+
+  <script>
+    // ゲームの状態
+    let currentWaits = [];     // 現在の問題の待ち牌
+    let correctAnswer = null;  // 現在の問題の正解
+    let currentKantzuTile = null; // 現在の槓子牌（4枚使われている牌）
+    let userStats = {
+      correct: 0,
+      total: 0
+    };
+    let quizActive = false;    // クイズが進行中かどうか
+    
+    // 初期化
+    window.onload = function() {
+      generateNewQuiz();
+      updateStats();
+      
+      // チェックボックス変更時のイベントリスナー
+      document.getElementById('kantzuMode').addEventListener('change', function() {
+        updateStats();
+      });
+    };
+    
+    function isCompleteHand(tiles) {
+      if (tiles.length !== 14) return false;
+      
+      // 七対子の判定を追加
+      if (isChitoitsu(tiles)) return true;
+      
+      // 通常の和了判定（対子＋面子）
+      const counts = countTiles(tiles);
+      for (const tile in counts) {
+        if (counts[tile] >= 2) {
+          const temp = { ...counts };
+          temp[tile] -= 2;
+          if (canFormMelds(temp)) return true;
+        }
+      }
+      return false;
+    }
+
+    // 七対子判定関数
+    function isChitoitsu(tiles) {
+      if (tiles.length !== 14) return false;
+      
+      const counts = {};
+      tiles.forEach(tile => {
+        counts[tile] = (counts[tile] || 0) + 1;
+      });
+      
+      // 七対子は全ての牌が2枚ずつである必要がある
+      for (const tile in counts) {
+        if (counts[tile] !== 2) return false;
+      }
+      
+      // 7組の対子があることを確認
+      return Object.keys(counts).length === 7;
+    }
+
+    function canFormMelds(counts) {
+      // 萬子のみで判定
+      const tiles = [];
+      for (const tile in counts) {
+        if (tile.endsWith('m')) {
+          const num = parseInt(tile);
+          for (let i = 0; i < counts[tile]; i++) tiles.push(num);
+        }
+      }
+      
+      tiles.sort((a, b) => a - b);
+      return canFormMeldsInSuit(tiles);
+    }
+
+    function canFormMeldsInSuit(tiles) {
+      if (tiles.length === 0) return true;
+      if (tiles.length % 3 !== 0) return false;
+      
+      // 再帰的に全パターンを試す関数
+      function tryAllPatterns(remaining) {
+        // すべての牌がなくなったら成功
+        if (remaining.length === 0) return true;
+        
+        // 刻子を試す
+        if (remaining.length >= 3 && remaining[0] === remaining[1] && remaining[1] === remaining[2]) {
+          return tryAllPatterns(remaining.slice(3));
+        }
+        
+        // 順子を試す
+        if (remaining.length >= 3) {
+          const value = remaining[0];
+          const idx1 = remaining.indexOf(value + 1);
+          const idx2 = remaining.indexOf(value + 2);
+          
+          if (idx1 !== -1 && idx2 !== -1) {
+            const newRemaining = [...remaining];
+            newRemaining.splice(0, 1); // 最初の牌を削除
+            newRemaining.splice(newRemaining.indexOf(value + 1), 1); // 2番目の牌を削除
+            newRemaining.splice(newRemaining.indexOf(value + 2), 1); // 3番目の牌を削除
+            return tryAllPatterns(newRemaining);
+          }
+        }
+        
+        return false;
+      }
+      
+      return tryAllPatterns([...tiles]);
+    }
+
+    function countTiles(tiles) {
+      const counter = {};
+      tiles.forEach(tile => counter[tile] = (counter[tile] || 0) + 1);
+      return counter;
+    }
+
+    function generateRandomHand(n = 13) {
+      const all = [];
+      for (let i = 1; i <= 9; i++) {
+        for (let j = 0; j < 4; j++) {
+          all.push(i + 'm');
+        }
+      }
+      shuffle(all);
+      return all.slice(0, n);
+    }
+
+    function getWaitingTiles(tiles) {
+      const waits = [];
+      const counter = countTiles(tiles);
+      
+      for (let i = 1; i <= 9; i++) {
+        const t = i + 'm';
+        
+        // 槓子牌（すでに4枚使われている牌）は待ち牌にできない
+        if (t === currentKantzuTile) continue;
+        
+        if ((counter[t] || 0) < 4) {
+          const testHand = [...tiles, t];
+          if (isCompleteHand(testHand)) waits.push(t);
+        }
+      }
+      
+      return waits;
+    }
+    
+    // 新しいクイズを生成
+    function generateNewQuiz() {
+      quizActive = true;
+      resetUI();
+      
+      const newQuizBtn = document.getElementById('newQuizBtn');
+      newQuizBtn.disabled = true;
+      newQuizBtn.textContent = '生成中...';
+      
+      // 槓子モードかどうか確認
+      const isKantzuMode = document.getElementById('kantzuMode').checked;
+      
+      // 通常モードの場合は槓子牌情報をクリア
+      if (!isKantzuMode) {
+        currentKantzuTile = null;
+      }
+      
+      // 非同期で探索を行う
+      setTimeout(function searchTenpai() {
+        let hand;
+        
+        if (isKantzuMode) {
+          // 槓子を含むテンパイ手を生成
+          hand = generateKantzuHand();
+        } else {
+          // 通常のランダムテンパイ手を生成
+          hand = generateRandomHand();
+        }
+        
+        const waits = getWaitingTiles(hand);
+        
+        if (waits.length > 0) {
+          // テンパイが見つかった場合
+          hand.sort((a, b) => parseInt(a) - parseInt(b));
+          waits.sort((a, b) => parseInt(a) - parseInt(b));
+          
+          // 現在の問題を設定
+          currentWaits = waits;
+          displayHand(hand);
+          generateQuizOptions(waits);
+          
+          newQuizBtn.disabled = false;
+          newQuizBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg> 新しい問題';
+          
+          // 問題タイプを更新
+          updateStats();
+        } else {
+          // まだテンパイが見つからない場合は続ける
+          setTimeout(searchTenpai, 0);
+        }
+      }, 0);
+    }
+    
+    // 槓子を含むランダムな手牌を生成
+    function generateKantzuHand() {
+      const maxAttempts = 100;  // 最大試行回数
+      
+      // 4枚同じ牌を含む手牌を生成（槓子）
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        // 槓子にする牌をランダムに選択
+        const kantzuNumber = Math.floor(Math.random() * 9) + 1;
+        const kantzuTile = kantzuNumber + 'm';
+        
+        // 槓子牌の情報を保存
+        currentKantzuTile = kantzuTile;
+        
+        // 残りの牌のプール（槓子の牌は除外）
+        const remainingPool = [];
+        for (let i = 1; i <= 9; i++) {
+          if (i !== kantzuNumber) {
+            // 各牌は最大4枚
+            for (let j = 0; j < 4; j++) {
+              remainingPool.push(i + 'm');
+            }
+          }
+        }
+        
+        // 残りの9枚をランダムに選択
+        shuffle(remainingPool);
+        const remainingTiles = remainingPool.slice(0, 9);
+        
+        // 槓子と残りの牌を組み合わせて手牌を作成
+        const hand = [
+          kantzuTile, kantzuTile, kantzuTile, kantzuTile,
+          ...remainingTiles
+        ];
+        
+        // この手牌がテンパイしているか確認
+        const waits = getWaitingTiles(hand);
+        if (waits.length > 0) {
+          return hand;
+        }
+      }
+      
+      // 槓子テンパイが見つからない場合は通常の手牌を返す
+      currentKantzuTile = null;
+      return generateRandomHand();
+    }
+    
+    // クイズの選択肢を生成
+    function generateQuizOptions(waits) {
+      const optionsContainer = document.getElementById('quizOptions');
+      optionsContainer.innerHTML = '';
+      
+      // 正解の選択肢（すべての待ち牌）
+      const correctOption = [...waits];
+      correctAnswer = JSON.stringify(correctOption); // 配列を文字列化して比較用に保存
+      
+      // ダミーの選択肢を3つ生成
+      const allOptions = [correctOption];
+      
+      // ダミー選択肢を生成（3つ）
+      while (allOptions.length < 4) {
+        const dummyWaits = generateDummyWaits(waits);
+        // 既存の選択肢と重複しないか確認
+        const isDuplicate = allOptions.some(opt => 
+          JSON.stringify(opt.sort()) === JSON.stringify(dummyWaits.sort())
+        );
+        
+        if (!isDuplicate) {
+          allOptions.push(dummyWaits);
+        }
+      }
+      
+      // 選択肢をシャッフル
+      shuffle(allOptions);
+      
+      // 選択肢を表示
+      allOptions.forEach((option, index) => {
+        const optionBtn = document.createElement('div');
+        optionBtn.className = 'option-button';
+        optionBtn.dataset.option = JSON.stringify(option); // 待ち牌の配列を文字列化して保存
+        optionBtn.onclick = () => selectOption(optionBtn);
+        
+        // 待ち牌をすべて表示
+        option.sort((a, b) => parseInt(a) - parseInt(b)).forEach(tile => {
+          const tileEl = document.createElement('div');
+          tileEl.className = 'tile option-tile pinzu';
+          tileEl.textContent = tile.charAt(0);
+          optionBtn.appendChild(tileEl);
+        });
+        
+        optionsContainer.appendChild(optionBtn);
+      });
+    }
+    
+    // ダミーの選択肢セットを生成
+    function generateDummyWaits(correctWaits) {
+      // 戦略：
+      // 1. 正解から一部を削除
+      // 2. 正解に不要な牌を追加
+      // 3. 完全に異なる待ち牌セットを生成
+      
+      const strategy = Math.floor(Math.random() * 3);
+      
+      if (strategy === 0 && correctWaits.length > 1) {
+        // 1. 正解から一部を削除
+        const numToRemove = Math.min(Math.floor(Math.random() * (correctWaits.length - 1)) + 1, correctWaits.length - 1);
+        const shuffledWaits = [...correctWaits];
+        shuffle(shuffledWaits);
+        return shuffledWaits.slice(0, correctWaits.length - numToRemove);
+      } 
+      else if (strategy === 1) {
+        // 2. 正解に不要な牌を追加
+        const result = [...correctWaits];
+        const allPossibleTiles = [];
+        
+        for (let i = 1; i <= 9; i++) {
+          const tile = i + 'm';
+          // 槓子牌と正解の牌は除外
+          if (tile !== currentKantzuTile && !correctWaits.includes(tile)) {
+            allPossibleTiles.push(tile);
+          }
+        }
+        
+        // 1～2枚追加
+        const numToAdd = Math.floor(Math.random() * 2) + 1;
+        shuffle(allPossibleTiles);
+        
+        for (let i = 0; i < numToAdd && i < allPossibleTiles.length; i++) {
+          result.push(allPossibleTiles[i]);
+        }
+        
+        return result;
+      } 
+      else {
+        // 3. 完全に異なる待ち牌セットを生成
+        const allTiles = [];
+        for (let i = 1; i <= 9; i++) {
+          const tile = i + 'm';
+          // 槓子牌は除外
+          if (tile !== currentKantzuTile) {
+            allTiles.push(tile);
+          }
+        }
+        
+        // シャッフルして1～3枚選ぶ
+        shuffle(allTiles);
+        const numTiles = Math.floor(Math.random() * 3) + 1;
+        return allTiles.slice(0, numTiles);
+      }
+    }
+    
+    // 選択肢を選んだときの処理
+    function selectOption(optionElement) {
+      if (!quizActive) return;
+      
+      const selectedOption = optionElement.dataset.option;
+      const allOptions = document.querySelectorAll('.option-button');
+      
+      // 他の選択肢を選択不可に
+      quizActive = false;
+      
+      // 選択した選択肢をハイライト
+      optionElement.classList.add('selected');
+      
+      // 正誤判定
+      const isCorrect = selectedOption === correctAnswer;
+      
+      // 統計を更新
+      userStats.total++;
+      if (isCorrect) {
+        userStats.correct++;
+      }
+      updateStats();
+      
+      // 結果を表示（少し遅延させる）
+      setTimeout(() => {
+        // 正解・不正解を表示
+        if (isCorrect) {
+          optionElement.classList.add('correct');
+          showResultMessage('正解！', true);
+        } else {
+          optionElement.classList.add('wrong');
+          // 正解の選択肢をハイライト
+          allOptions.forEach(opt => {
+            if (opt.dataset.option === correctAnswer) {
+              opt.classList.add('correct');
+            }
+          });
+          
+      // ダミー選択肢を選んだ場合のメッセージ
+          const correctTiles = JSON.parse(correctAnswer).map(t => t.charAt(0) + '萬').join('、');
+          showResultMessage('不正解！正解は「' + correctTiles + '」です', false);
+        }
+      }, 500);
+    }
+    
+    // 結果メッセージを表示
+    function showResultMessage(message, isCorrect) {
+      const resultEl = document.getElementById('resultMessage');
+      resultEl.textContent = message;
+      resultEl.className = 'result-message ' + (isCorrect ? 'correct' : 'wrong');
+    }
+    
+    // 統計情報を更新
+    function updateStats() {
+      document.getElementById('correctCount').textContent = userStats.correct;
+      document.getElementById('totalCount').textContent = userStats.total;
+      
+      const accuracy = userStats.total === 0 ? 0 : Math.round((userStats.correct / userStats.total) * 100);
+      document.getElementById('accuracyRate').textContent = accuracy + '%';
+      
+      // 問題タイプを更新
+      const isKantzuMode = document.getElementById('kantzuMode').checked;
+      document.getElementById('problemType').textContent = isKantzuMode ? '槓子' : '通常';
+    }
+    
+    // UIをリセット
+    function resetUI() {
+      document.getElementById('handContainer').innerHTML = '';
+      document.getElementById('quizOptions').innerHTML = '';
+      document.getElementById('resultMessage').className = 'result-message';
+    }
+    
+    // 手牌を表示
+    function displayHand(hand) {
+      const container = document.getElementById('handContainer');
+      container.innerHTML = '';
+      
+      hand.forEach(tile => {
+        const tileElement = createTileElement(tile);
+        container.appendChild(tileElement);
+      });
+    }
+    
+    // 牌要素を作成
+    function createTileElement(tile) {
+      const element = document.createElement('div');
+      element.className = 'tile pinzu';
+      element.textContent = tile.charAt(0);
+      element.dataset.tile = tile;
+      return element;
+    }
+    
+    // 配列をシャッフル
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+  </script>
+</body>
+</html>
